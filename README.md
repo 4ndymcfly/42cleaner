@@ -6,7 +6,7 @@ It helps to free up disk space and maintain system performance.
 
 Made for 42 students. Tested on **42 Málaga** school running **Linux/Ubuntu**. NOT for macOS.
 
-<img src="assets/run.png" alt="Script running" align="center" />
+<img src="assets/run2.png" alt="Script running" align="center" />
 
 # Why?
 
