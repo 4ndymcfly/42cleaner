@@ -30,7 +30,7 @@ This tool removes the following files:
 # Scheduled tasks and silent mode:
 
 - The script allows you to select from different time intervals so that the task runs automatically in the background.
-- Silent Mode: this mode is added to run the scheduled task or execute the task directly without any screen output.
+- Silent Mode: this mode is added to run the scheduled task or execute the task directly without prompts.
 
 # How to use
 
