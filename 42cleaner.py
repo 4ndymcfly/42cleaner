@@ -1,155 +1,169 @@
 #!/usr/bin/env python3
 
-# Cleaner script for 42 students. It will remove all the trash files from our home directory.
-# -----
-# Author: WildZarek
-# 42login: dsarmien
-
 import os
 import psutil
 import subprocess
 from glob import glob
 from time import sleep
+import argparse
 
-def Red(txt: str) -> None:
-    return f"\033[91m{txt}\033[97m"
-
-def Green(txt: str) -> None:
-    return f"\033[92m{txt}\033[97m"
-
-def Yellow(txt: str) -> None:
-    return f"\033[93m{txt}\033[97m"
-
-def Blue(txt: str) -> str:
-    return f"\033[94m{txt}\033[97m"
-
-def Purple(txt: str) -> str:
-    return f"\033[95m{txt}\033[97m"
-
-def Cyan(txt: str) -> str:
-    return f"\033[96m{txt}\033[97m"
-
-def White(txt: str) -> str:
-    return f"\033[97m{txt}\033[97m"
+# Color functions
+def color(txt: str, code: str) -> str:
+    return f"\033[{code}m{txt}\033[97m"
 
 def show_banner() -> None:
-    banner = """\033[93m
-  ____ ___      __                     
+    if not args.silent:
+        banner = """\033[93m
+  ____ ___      __
  / / /|_  |____/ /__ ___ ____  ___ ____
-/_  _/ __// __/ / -_) _ `/ _ \/ -_) __/
- /_//____/\__/_/\__/\_,_/_//_/\__/_/   
-\033[91m                       by WildZarek  
+/_  _/ __// __/ / -_) _ `/ _ \\/ -_) __/
+/_//____/\\__/_/\\__/\\_,_/_//_/\\__/_/
+\033[91m                       by WildZarek
 
 \033[94m42cleaner\033[96m | Cleaner script for 42 students.\033[97m
 
->> If you liked this tool, give it a \033[93m'★ Star'\033[97m at the repository. Thanks!
->> \033[34mhttps://github.com/WildZarek/42cleaner\033[97m
+>> Run the script with -h or --help for more information.
 """
-    os.system("clear")
-    print(banner)
+        os.system("clear")
+        print(banner)
 
-def check_command(command: str) -> str:
-    cmd = subprocess.run(['which', command], stdout=subprocess.PIPE)
-    return cmd.stdout.decode('utf-8').strip()
+def parse_args():
+    parser = argparse.ArgumentParser(description="Cleaner script for 42 students.")
+    parser.add_argument("-s", "--silent", action="store_true", help="run the script in silent mode without prompts")
+    return parser.parse_args()
 
-def exec_command(command: str) -> str:
-    cmd = subprocess.run([command], stdout=subprocess.PIPE)
-    return cmd.stdout.decode('utf-8').strip()
+args = parse_args()
+
+def exec_command(command: list) -> str:
+    return subprocess.run(command, stdout=subprocess.PIPE).stdout.decode().strip()
 
 def show_space(usr: str) -> str:
     home = psutil.disk_usage(f"/home/{usr}/")
-    used_space = round(home.percent)
-    free_space = 100 - used_space
-    msg_space = f"{Red(str(used_space))}{Red('% used')} | {Green(str(free_space))}{Green('% free')}"
-    return msg_space
-
-def need_space(usr: str) -> bool:
-    home = psutil.disk_usage(f"/home/{usr}/")
-    # Uncomment the following lines to print disk usage or use 'df -h' command on a terminal:
-    # print(f"Total: {round(home.total / (2**30), 2)} GiB")
-    # print(f"Used: {round(home.used / (2**30), 2)} GiB")
-    # print(f"Free: {round(home.free / (2**30), 2)} GiB")
-    # print(f"Percentage: {round(home.percent)}%")
-    if round(home.percent) > 60:
-        return True
-    else:
-        return False
-
-def clear_snap(usr: str) -> int:
-    files_deleted = 0
-    packages = glob(f"/home/{usr}/snap/*")
-    print(f"[{Blue('i')}] Found {Cyan(str(len(packages)))} snap packages.\n")
-    for pkg in packages:
-        # Firefox's cleaning subroutine
-        if pkg.split('/')[-1] == "firefox":
-            firefox_cache = glob(f"{pkg}/common/.cache/*")
-            files_deleted += len(firefox_cache)
-            os.system(f"rm -rf {pkg}/common/.cache/*")
-        # Slack's cleaning subroutine
-        if pkg.split('/')[-1] == "slack":
-            slack_cache = glob(f"{pkg}/common/.cache/*")
-            files_deleted += len(slack_cache)
-            os.system(f"rm -rf {pkg}/common/.cache/*")
-            slack_versions = os.listdir(pkg)
-            slack_versions.remove("common")
-            slack_versions.remove("current")
-            slack_latest_cache = glob(f"{pkg}/{slack_versions[0]}/.config/Slack/Cache/Cache_Data/*")
-            files_deleted += len(slack_latest_cache)
-            os.system(f"rm -rf {pkg}/{slack_versions[0]}/.config/Slack/Cache/Cache_Data/*")
-        versions = os.listdir(pkg)
-        versions.remove("common")
-        versions.remove("current")
-        if len(versions) > 1:
-            print(f"[{Yellow('!')}] Found {Red(str(len(versions)))} versions of {Green(pkg.split('/')[-1])}")
-            print(f"[{Red('-')}] Removing old versions...")
-            sleep(2)
-            for v in versions:
-                if v != max(versions):
-                    files_deleted += sum([len(f) for r, d, f in os.walk(f"{pkg}/{v}/")])
-                    os.system(f"rm -rf {pkg}/{v}")
-    return files_deleted
+    used = round(home.percent)
+    return f"{color(f'{used}%', '91')} {color('used', '91')} / {color(f'{100 - used}%', '92')} {color('free', '92')}"
 
 def clean() -> None:
-    usr = exec_command("whoami")
-    if need_space(usr):
-        rm_bin = check_command("rm")
-        if not rm_bin:
-            print(f"{Red('Error')}: {Cyan('rm')} binary not found.")
-            return
-        else:
-            # Trash files
-            files_trash = glob(f"/home/{usr}/.local/share/Trash/*")
-            # Cache files
-            files_zcompdump = glob(f"/home/{usr}/.zcompdump*")
-            files_cache = glob(f"/home/{usr}/.cache/*")
-            files_vscode_cache = glob(f"/home/{usr}/.config/Code/Cache/*")
-            files_vscode_cached_data = glob(f"/home/{usr}/.config/Code/CachedData/*")
-            # Francinette files
-            files_francinette = glob(f"/home/{usr}/francinette/temp/*")
-            # Snap packages (revisions)
-            files_snap = clear_snap(usr)
-            
-            total_files = len(files_zcompdump) + len(files_cache) + len(files_vscode_cache) \
-                          + len(files_vscode_cached_data) + len(files_trash) \
-                          + len(files_francinette) + files_snap
-            if total_files == 0:
-                print(f"[{Blue('i')}] No trash files found.")
-                return
-            else:
-                clear_files = files_zcompdump + files_cache + files_vscode_cache \
-                            + files_vscode_cached_data + files_trash + files_francinette
-                print(f"[{Yellow('!')}] Cleaning trash files...")
-                for f in clear_files:
-                    os.system(f"{rm_bin} -rf {f}")
-                sleep(2)
-                # The total files deleted is not accurate because some files (inside folders) are not counted.
-                # But it's enough to show the user that the script is working. So, 1 folder = 1 file (in some cases).
-                print(f"[{Red('-')}] Deleted {Yellow(str(total_files))} trash files.")
-                print(f"[{Blue('i')}] Disk usage after clean: {show_space(usr)}\n")
-    else:
-        print(f"[{Blue('i')}] No need to clean. You have enough space: {show_space(usr)}\n")
+    usr = exec_command(["whoami"])
+
+    # Check if cleanup is necessary
+    if psutil.disk_usage(f"/home/{usr}/").percent <= 60:
+        if not args.silent:
+            print(f"\nNothing to clean.\nSpace: {show_space(usr)}")
+            print(f"\nExiting...")
         return
+
+    # Check for 'rm' binary
+    rm_bin = exec_command(["which", "rm"])
+    if not rm_bin:
+        if not args.silent:
+            print(f"{color('Error', '91')}: {color('rm binary not found.', '96')}")
+        return
+
+    # Paths for trash files
+    trash_paths = [
+        f"/home/{usr}/.local/share/Trash/*",
+        f"/home/{usr}/.zcompdump*",
+        f"/home/{usr}/.cache/*",
+        f"/home/{usr}/.config/Code/Cache/*",
+        f"/home/{usr}/.config/Code/CachedData/*",
+        f"/home/{usr}/francinette/temp/*",
+    ]
+
+    snap_deleted_files_count = 0
+
+    # Cleanup snap-related files
+    for pkg in glob(f"/home/{usr}/snap/*"):
+        if pkg.endswith("firefox") or pkg.endswith("slack"):
+            cache_files = glob(f"{pkg}/common/.cache/*")
+            snap_deleted_files_count += len(cache_files)
+            os.system(f"rm -rf {pkg}/common/.cache/*")
+        versions = [v for v in os.listdir(pkg) if v not in {"common", "current"}]
+        if len(versions) > 1:
+            for v in sorted(versions)[:-1]:
+                snap_deleted_files_count += sum(len(f) for _, _, f in os.walk(f"{pkg}/{v}"))
+                os.system(f"rm -rf {pkg}/{v}")
+
+    # Count trash files
+    trash_files_count = sum(len(glob(path)) for path in trash_paths)
+
+    # Total files deleted
+    total_deleted_files_count = snap_deleted_files_count + trash_files_count
+
+    if total_deleted_files_count == 0:
+        if not args.silent:
+            print(f"[{color('i', '94')}] No trash files found.")
+    else:
+        if not args.silent:
+            print(f"[{color('!', '93')}] Cleaning trash files...")
+        for path in trash_paths:
+            os.system(f"{rm_bin} -rf {path}")
+        if not args.silent:
+            sleep(2)
+            print(f"[{color('-', '91')}] Deleted {color(str(total_deleted_files_count), '93')} files.")
+            print(f"[{color('i', '94')}] Disk usage after clean: {show_space(usr)}")
+
+def show_menu():
+    print("Please choose an option:\n")
+    print(f"1.{color(' Create a scheduled task', '94')}")
+    print(f"2.{color(' Remove a scheduled task', '94')}")
+    print(f"3.{color(' Run the script now', '94')}")
+    print(f"q.{color(' Quit', '94')}")
+
+    choice = input("\nEnter your choice (1/2/3/q): ").strip().lower()
+
+    return choice
+
+def schedule_task() -> None:
+    if args.silent:
+        return  # Skip task scheduling in silent mode
+
+    choice = show_menu()
+
+    usr = exec_command(["whoami"])
+    script_path = os.path.abspath(__file__)
+    cron_line = f"{script_path} --silent &> /dev/null"
+
+    if choice == '1':
+        current_cron = exec_command(["crontab", "-l"])
+        if cron_line in current_cron:
+            print(f"\n{color('Info', '94')}: A scheduled task already exists for this script.")
+            return
+
+        interval_options = {
+            '1': "*/6 * * * *",
+            '2': "*/8 * * * *",
+            '3': "*/12 * * * *"
+        }
+        print("\nChoose an interval for the scheduled task:\n")
+        print(f"1.{color(' Every 6 hours', '94')}")
+        print(f"2.{color(' Every 8 hours', '94')}")
+        print(f"3.{color(' Every 12 hours', '94')}")
+
+        interval_choice = input("\nEnter your choice (1/2/3): ").strip()
+        interval = interval_options.get(interval_choice)
+        if not interval:
+            print(f"\n{color('Error', '91')}: Invalid choice.")
+            return
+
+        full_cron_line = f"{interval} {cron_line}"
+        os.system(f"(crontab -l; echo '{full_cron_line}') | crontab -")
+        print(f"\n{color('Success', '92')}: Scheduled task created to run every {interval} hours.")
+
+    elif choice == '2':
+        current_cron = exec_command(["crontab", "-l"])
+        if cron_line not in current_cron:
+            print(f"\n{color('Info', '94')}: No scheduled task found for this script.")
+        else:
+            new_cron = "\n".join([line for line in current_cron.splitlines() if cron_line not in line])
+            os.system(f"echo '{new_cron}' | crontab -")
+            print(f"\n{color('Success', '92')}: Scheduled task removed.")
+
+    elif choice == '3':
+        clean()
+
+    elif choice == 'q':
+        print(f"\nBye!")
 
 if __name__ == "__main__":
     show_banner()
-    clean()
+    schedule_task()
