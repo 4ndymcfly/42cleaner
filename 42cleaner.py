@@ -130,9 +130,9 @@ def schedule_task() -> None:
             return
 
         interval_options = {
-            '1': "*/6 * * * *",
-            '2': "*/8 * * * *",
-            '3': "*/12 * * * *"
+            '1': "0 */6 * * *",
+            '2': "0 */8 * * *",
+            '3': "0 */12 * * *"
         }
         print("\nChoose an interval for the scheduled task:\n")
         print(f"1.{color(' Every 6 hours', '94')}")
