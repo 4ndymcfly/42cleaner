@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import psutil
 import subprocess
 from glob import glob
@@ -147,7 +148,8 @@ def schedule_task() -> None:
 
         full_cron_line = f"{interval} {cron_line}"
         os.system(f"(crontab -l; echo '{full_cron_line}') | crontab -")
-        print(f"\n{color('Success', '92')}: Scheduled task created to run every {interval} hours.")
+        hour = re.search(r'\*/(\d+)', interval).group(1)
+        print(f"\n{color('Success', '92')}: Scheduled task created to run every {hour} hours.")
 
     elif choice == '2':
         current_cron = exec_command(["crontab", "-l"])
